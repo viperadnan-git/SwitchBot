@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SwitchBot - Control Panel</title>
+    <meta name="author" content="Adnan Ahmad">
+    <meta name="description" content="SwitchBot control panel based on ESP32S Development Board">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans&display=swap');
+        body {
+            font-family: 'Josefin Sans', sans-serif;
+        }
+    </style>
+</head>
+<body class="has-background-light">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <span class="navbar-item has-text-weight-bold" href="/">
+                SwitchBot
+            </span>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <button id="theme-menu" class="switch-button button is-primary is-small" value="v10=0">Turn On All Switches</button>
+                </div>
+                <div class="navbar-item">
+                    <button id="theme-menu" class="switch-button button is-danger is-small" value="v9=0">Turn Off All Switches</button>
+                </div>
+                <div class="navbar-item has-dropdown">
+                    <span class="navbar-link navbar-dropdown-item">
+                        Settings
+                    </span>
+                    <div class="navbar-dropdown">
+                        <div class="navbar-item">
+                            <div class="buttons">
+                                <button id="edit-button" class="button is-primary is-small">Edit</button>
+                                <button onclick="deleteTokenAlert()" class="button is-danger is-small">Delete Token</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div id="body" class="container is-fluid my-5">
+        <div id="switches-body" class="columns is-flex-wrap-wrap"></div>
+    </div>
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p class="is-size-7">
+                <strong>SwitchBot</strong> by <a href="https://viperadnan-git.github.io">Adnan Ahmad</a>.<br>The source code is licensed
+                <a href="http://opensource.org/licenses/mit-license.php">MIT</a>.<br>
+                Copyright &copy; 2021 &mdash; All rights reserved
+            </p>
+        </div>
+    </footer>
+    <script>
+        var authToken = Cookies.get('SWITCHBOT_AUTH_TOKEN') || null;
+        try {
+            var Switches = JSON.parse(b64_to_utf8(Cookies.get('SWITCHBOT_SWITCH_TITLE')))
+        } catch(e) {
+            var Switches = {
+                "v1": "Switch 1",
+                "v2": "Switch 2",
+                "v3": "Switch 3",
+                "v4": "Switch 4",
+                "v5": "Switch 5",
+                "v6": "Switch 6",
+                "v7": "Switch 7",
+                "v8": "Switch 8"
+            }
+        }
+        $(document).ready(function() {
+            $(".navbar-burger").click(function() {
+                $(".navbar-burger, .navbar-menu").toggleClass("is-active");
+            });
+            $(".navbar-dropdown-item").click(function() {
+                $(this).parent().toggleClass('is-active');
+            });
+            // ----- Default Code ----------
+            if (!authToken) {
+                showTokenAlert()
+            }
+            for (var key in Switches) {
+                var value = Switches[key];
+                $('#switches-body').append(`
+                    <div class="column is-3">
+                    <div class="card">
+                    <div class="card-content">
+                    <p class="title switch-title" data-key="${key}">${value}</p>
+                    </div>
+                    <footer class="card-footer">
+                    <p class="card-footer-item">
+                    <button class="button is-success is-fullwidth switch-button" value="${key}=1">ON</button>
+                    </p>
+                    <p class="card-footer-item">
+                    <button class="button is-danger is-fullwidth switch-button" value="${key}=0">OFF</button>
+                    </p>
+                    </footer>
+                    </div>
+                    </div>
+                    `)
+            };
+            $('.switch-button').click(function() {
+                $.get(`https://blynk.cloud/external/api/update?token=${authToken}&${this.value}`,
+                ).fail(function (request, status, error) {
+                        swal("Blynk Returned", request.responseText, "info");
+                    })
+            });
+            $('#edit-button').click(function() {
+                var editButton = $(this);
+                if (editButton.text() == "Edit") {
+                    $('.switch-title').attr('contenteditable', true);
+                    editButton.text('Save');
+                    swal({
+                        title: 'Now you can edit switch names and after editing click on\"Save\" button to save it.',
+                        icon: 'info'
+                    })
+                } else {
+                    $('.switch-title').attr('contenteditable', false);
+                    $('.switch-title').each(function(i) {
+                        Switches[$(this).attr('data-key')] = $(this).text();
+                    })
+                    Cookies.set('SWITCHBOT_SWITCH_TITLE', utf8_to_b64(JSON.stringify(Switches)), {
+                        expires: 3650
+                    });
+                    editButton.text('Edit');
+                    swal({
+                        title: 'Switch Titles saved successfully',
+                        icon: 'success'
+                    });
+                }
+            })
+        });
+        function showTokenAlert() {
+            swal({
+                title: "Device Token Required",
+                text: "In order to use this control panel, authorise your device by providing device token from Blynk.Cloud",
+                icon: "warning",
+                button: {
+                    text: "Save",
+                    closeModal: false,
+                },
+                closeOnClickOutside: false,
+                closeOnEsc: false,
+                content: {
+                    element: "input",
+                    attributes: {
+                        placeholder: "Enter device token",
+                        type: "text"
+                    },
+                }
+            }).then((token) => {
+                if (!token) {
+                    showTokenAlert()
+                } else {
+                    Cookies.set("SWITCHBOT_AUTH_TOKEN", token, {
+                        expires: 3650
+                    });
+                    authToken = token;
+                    return swal({
+                        title: "Device Token Saved Successfully",
+                        icon: "success"
+                    })
+                }
+            })
+        }
+        function deleteTokenAlert() {
+            swal({
+                title: "Are you sure?",
+                text: "Once deleted, you will not be able to recover device token !",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+            })
+            .then((willDelete) => {
+                if (willDelete) {
+                    Cookies.remove('SWITCHBOT_AUTH_TOKEN')
+                    swal({
+                        title: "Your device token has been deleted!",
+                        text: "Reload the page to add new device token",
+                        icon: "success",
+                        closeOnClickOutside: false,
+                        closeOnEsc: false,
+                        button: {
+                            text: "Reload Page",
+                            closeModal: false,
+                        },
+                    }).then(() => {
+                        window.location.reload();
+                    })
+                } else {
+                    swal({
+                        title: "Your device token is safe!",
+                        icon: "info"
+                    });
+                }
+            });
+        }
+        function utf8_to_b64(str) {
+            return window.btoa(unescape(encodeURIComponent(str)));
+        }
+
+        function b64_to_utf8(str) {
+            return decodeURIComponent(escape(window.atob(str)));
+        }
+    </script>
+</body>
+</html>
