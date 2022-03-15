@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SwitchBot - Control Panel</title>
+
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css"
+            integrity="sha512-IgmDkwzs96t4SrChW29No3NXBIBv8baW490zk5aXvhCD8vuZM3yUSkbyTBcXohkySecyzIrUwiF/qV0cuPcL3Q=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" referrerpolicy="no-referrer"></script>
+        <script src="/static/sweetalert2.min.js"></script>
+    </head>
+    <body>
+        <section class="hero is-fullheight">
+            <div class="hero-body is-justify-content-center">
+                <div>
+                    <p class="title">SwitchBot</p>
+                    <p id="buttons"></p>
+                </div>
+            </div>
+        </section>
+        <footer class="footer">
+            <div class="content has-text-centered">
+                <p class="is-size-7">
+                    Copyright &copy; 2022 &mdash; All rights reserved
+                    <br />
+                    <a href="https://viperadnan-git.github.io/pages/privacy-policy">Privacy</a>
+                    &#x2022; <a href="https://viperadnan-git.github.io/pages/privacy-policy">Terms & Conditions</a> &#x2022;
+                    <a href="https://viperadnan-git.github.io/pages/privacy-policy">Cookies</a>
+                    <br />
+                    <b>Adnan Ahmad</b>
+                </p>
+            </div>
+        </footer>
+        <script type="application/javascript">
+            const username = "abc";
+            const password = "00";
+            $.ajaxSetup({
+                headers: { Authorization: "Basic " + btoa(username + ":" + password) },
+                error: function (jqXHR, exception) {
+                    if (jqXHR.status === 0) {
+                        alert("Not connect.\n Verify Network.");
+                    } else if (jqXHR.status == 404) {
+                        alert("Requested page not found. [404]");
+                    } else if (jqXHR.status == 500) {
+                        alert("Internal Server Error [500].");
+                    } else if (exception === "parsererror") {
+                        alert("Requested JSON parse failed.");
+                    } else if (exception === "timeout") {
+                        alert("Time out error.");
+                    } else if (exception === "abort") {
+                        alert("Ajax request aborted.");
+                    } else {
+                        alert("Uncaught Error.\n" + jqXHR.responseText);
+                    }
+                },
+            });
+            function sendSwitchCmd(key, value) {
+                $.post("https://switchbot-v.herokuapp.com/api/abc", JSON.stringify({ key: value }));
+            }
+            $.getJSON("https://switchbot-v.herokuapp.com/api/abc").done((resp) => {
+                console.log(resp);
+                for (const [key, value] of Object.entries(resp)) {
+                    $("#buttons").append(
+                        value
+                            ? `<button class="button is-success" data-sb-key="${key}" data-sb-value="false">${key}</button>`
+                            : `<button class="button is-danger" data-sb-key="${key}" data-sb-value="true">${key}</button>`
+                    );
+                }
+                $("#buttons .button").click((event) => {
+                    console.log("CLICKED");
+                    let ele = $(event.target);
+                    let sb_key = ele.attr("data-sb-key");
+                    let sb_val = ele.attr("data-sb-value");
+                    $.post("https://switchbot-v.herokuapp.com/api/abc", `{"${sb_key}":${sb_val}}`).done((resp) => {
+                        if (resp.data[sb_key]) {
+                            ele.attr("data-sb-value", "false");
+                            ele.addClass("is-success");
+                            ele.removeClass("is-danger");
+                        } else {
+                            ele.attr("data-sb-value", "true");
+                            ele.removeClass("is-success");
+                            ele.addClass("is-danger");
+                        }
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

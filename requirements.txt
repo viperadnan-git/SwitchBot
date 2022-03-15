@@ -1,0 +1,3 @@
+aiohttp==3.8.1
+cerberus
+aiohttp-jinja2

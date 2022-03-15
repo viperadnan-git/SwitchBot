@@ -5,7 +5,7 @@ class JSONValidator:
     def __init__(self) -> None:
         self.__validator = Validator()
     
-    def switch(self, data):
+    def switch_button(self, data):
         switch_schema = {
             "1": {"type":"boolean"},
             "2": {"type":"boolean"},
